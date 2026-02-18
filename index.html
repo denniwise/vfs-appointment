@@ -1,0 +1,2535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VFS Appointment System</title>
+
+  <style>
+    /* =========================================================
+      BASE / LAYOUT
+    ========================================================= */
+    * { box-sizing: border-box; }
+
+    body{
+      font-family:"Segoe UI",sans-serif;
+      background:#f4f6fb;
+      margin:0;
+      padding:16px;
+      min-height:100vh;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+    }
+
+    .container{
+      background:#fff;
+      width:100%;
+      max-width:820px;
+      padding:26px;
+      border-radius:14px;
+      box-shadow:0 15px 40px rgba(0,0,0,0.1);
+    }
+
+    .title{ text-align:center; margin:0 0 6px; font-weight:800; }
+    .subtitle{ text-align:center; color:#6b7280; font-size:14px; margin:0 0 22px; }
+
+    /* =========================================================
+      STEPS (TOP INDICATOR)
+    ========================================================= */
+    .steps{ display:flex; justify-content:center; margin-bottom:24px; }
+    .step{
+      width:32px; height:32px; border-radius:50%;
+      background:#d1d5db; color:#fff;
+      display:flex; align-items:center; justify-content:center;
+      margin:0 6px; font-weight:bold;
+    }
+    .step.active{ background:#4f46e5; }
+
+    /* =========================================================
+      FORM INPUTS
+    ========================================================= */
+    label{ display:block; margin-top:14px; font-size:14px; color:#111827; }
+    .req{ color:#dc2626; font-weight:700; margin-left:4px; }
+    .helper{ margin-top:6px; font-size:12px; color:#dc2626; display:none; }
+
+    input, select{
+      width:100%;
+      padding:11px;
+      margin-top:6px;
+      border-radius:8px;
+      border:1px solid #ccc;
+      font-size:16px;
+    }
+    input:focus, select:focus{ outline:none; border-color:#4f46e5; }
+    .invalid{ border-color:#dc2626 !important; }
+
+    .two-col{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:16px 18px;
+      margin-top:8px;
+    }
+    .field{ min-width:0; }
+    .field.full{ grid-column:1 / -1; }
+
+    /* =========================================================
+      RADIO CARDS
+    ========================================================= */
+    .radio-group{
+      display:grid;
+      grid-template-columns:repeat(2, minmax(0, 1fr));
+      gap:12px;
+      margin-top:10px;
+    }
+    .radio-option{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding:12px 12px;
+      border:1px solid #d1d5db;
+      border-radius:12px;
+      background:#fff;
+      cursor:pointer;
+      user-select:none;
+      transition:border-color .15s ease, box-shadow .15s ease, transform .05s ease;
+      font-size:14px;
+      color:#111827;
+    }
+    .radio-option:hover{
+      border-color:#a5b4fc;
+      box-shadow:0 6px 18px rgba(79,70,229,0.10);
+    }
+    .radio-option:active{ transform:scale(0.99); }
+
+    .radio-option input[type="radio"]{
+      appearance:none;
+      -webkit-appearance:none;
+      width:18px; height:18px;
+      border:2px solid #cbd5e1;
+      border-radius:999px;
+      position:relative;
+      background:#fff;
+      flex:0 0 auto;
+    }
+    .radio-option input[type="radio"]:checked{ border-color:#4f46e5; }
+    .radio-option input[type="radio"]:checked::after{
+      content:"";
+      position:absolute;
+      width:10px; height:10px;
+      border-radius:999px;
+      top:50%; left:50%;
+      transform:translate(-50%, -50%);
+      background:#4f46e5;
+    }
+
+    .radio-option.selected{
+      border-color:#4f46e5;
+      background:#eef2ff;
+    }
+
+    .radio-group.invalid{
+      border:1px solid #dc2626;
+      padding:10px;
+      border-radius:12px;
+      background:#fef2f2;
+    }
+
+    @media (max-width:520px){
+      .radio-group{ grid-template-columns:1fr; }
+    }
+
+    /* =========================================================
+      CHECKBOX CARDS (SOURCE)
+    ========================================================= */
+    .check-group{
+      display:grid;
+      grid-template-columns:repeat(2, minmax(0, 1fr));
+      gap:12px;
+      margin-top:10px;
+    }
+    .check-option{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding:12px 12px;
+      border:1px solid #d1d5db;
+      border-radius:12px;
+      background:#fff;
+      cursor:pointer;
+      user-select:none;
+      transition:border-color .15s ease, box-shadow .15s ease, transform .05s ease;
+      font-size:14px;
+      color:#111827;
+    }
+    .check-option:hover{
+      border-color:#a5b4fc;
+      box-shadow:0 6px 18px rgba(79,70,229,0.10);
+    }
+    .check-option:active{ transform:scale(0.99); }
+    .check-option input[type="checkbox"]{
+      width:18px;
+      height:18px;
+      accent-color:#4f46e5;
+      flex:0 0 auto;
+    }
+    .check-option.selected{
+      border-color:#4f46e5;
+      background:#eef2ff;
+    }
+    .check-group.invalid{
+      border:1px solid #dc2626;
+      padding:10px;
+      border-radius:12px;
+      background:#fef2f2;
+    }
+    @media (max-width:520px){
+      .check-group{ grid-template-columns:1fr; }
+    }
+
+    /* =========================================================
+      MIDDLE NAME CHECK
+    ========================================================= */
+    .no-middle{
+      display:flex; align-items:center; gap:8px;
+      margin-top:10px; font-size:13px; color:#374151;
+    }
+    .no-middle input{ width:auto; margin:0; }
+    .middle-disabled{
+      background:#f3f4f6; color:#6b7280; border-color:#d1d5db;
+    }
+
+    /* =========================================================
+      BUTTONS
+    ========================================================= */
+    .buttons{
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      margin-top:28px;
+      flex-wrap:wrap;
+    }
+    .btn{
+      flex:1;
+      padding:12px;
+      border:none;
+      border-radius:10px;
+      cursor:pointer;
+      font-weight:bold;
+      font-size:15px;
+    }
+    .next{ background:#4f46e5; color:#fff; }
+    .back{ background:#e5e7eb; }
+    .submit{ background:#16a34a; color:#fff; }
+
+    /* =========================================================
+      STEP PANELS
+    ========================================================= */
+    .form-step{ display:none; }
+    .form-step.active{ display:block; }
+
+    /* =========================================================
+      NOTICE BOX
+    ========================================================= */
+    .notice{
+      margin-top:14px;
+      font-size:13px;
+      color:#111827;
+      background:#f3f4f6;
+      border:1px solid #e5e7eb;
+      padding:10px;
+      border-radius:10px;
+      display:none;
+    }
+
+    /* =========================================================
+      PRICE BOX
+    ========================================================= */
+    .price-box{
+      margin-top:12px;
+      padding:14px;
+      border-radius:12px;
+      border:1px solid #e5e7eb;
+      background:#f8fafc;
+      color:#111827;
+      font-size:14px;
+      line-height:1.45;
+    }
+    .total-red{ color:#dc2626; font-weight:800; }
+    .price-box strong{ font-size:15px; }
+    .price-muted{ color:#6b7280; font-size:13px; margin-top:6px; }
+
+    /* =========================================================
+      CALENDAR
+    ========================================================= */
+    .calendar-wrap{ position:relative; } /* IMPORTANT: for overlay */
+    .calendar-wrap{
+      margin-top:14px;
+      border:1px solid #e5e7eb;
+      border-radius:14px;
+      background:#fff;
+      overflow:hidden;
+    }
+    .cal-head{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:10px 12px;
+      border-bottom:1px solid #e5e7eb;
+      background:#f8fafc;
+    }
+    .cal-title{ font-weight:800; color:#111827; }
+    .cal-nav{
+      border:1px solid #e5e7eb;
+      background:#fff;
+      border-radius:10px;
+      width:38px;
+      height:34px;
+      cursor:pointer;
+      font-size:18px;
+    }
+    .cal-grid{ display:grid; grid-template-columns:repeat(7, 1fr); }
+    .cal-dow div{
+      padding:10px 8px;
+      font-size:12px;
+      font-weight:700;
+      color:#6b7280;
+      border-bottom:1px solid #eef2f7;
+      background:#fff;
+      text-align:center;
+    }
+
+    .cal-day{
+      min-height:92px;
+      border-right:1px solid #eef2f7;
+      border-bottom:1px solid #eef2f7;
+      padding:8px;
+      position:relative;
+      background:#fff;
+    }
+    .cal-day:nth-child(7n){ border-right:none; }
+
+    .cal-num{
+      font-size:12px;
+      font-weight:800;
+      color:#111827;
+    }
+
+    .cal-day.disabled{
+      background:repeating-linear-gradient(
+        45deg,#fafafa,#fafafa 10px,#f3f4f6 10px,#f3f4f6 20px
+      );
+      color:#9ca3af;
+    }
+
+    .slot-box{
+      margin-top:6px;
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+    }
+    .slot-btn{
+      width:100%;
+      border:1px solid #d1d5db;
+      border-radius:10px;
+      padding:6px 8px;
+      cursor:pointer;
+      background:#fff;
+      font-size:12px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+    }
+    .slot-btn:hover{
+      border-color:#a5b4fc;
+      box-shadow:0 6px 18px rgba(79,70,229,0.10);
+    }
+    .slot-btn:disabled{
+      cursor:not-allowed;
+      opacity:.55;
+      box-shadow:none;
+    }
+    .slot-btn.selected{
+      border-color:#4f46e5;
+      background:#eef2ff;
+      font-weight:800;
+    }
+
+    .selected-box{
+      margin:12px;
+      padding:12px;
+      border:1px solid #e5e7eb;
+      border-radius:12px;
+      background:#f8fafc;
+      font-size:14px;
+    }
+
+    /* Calendar loading overlay */
+    .cal-loading{
+      position:absolute;
+      inset:0;
+      background:rgba(255,255,255,0.72);
+      backdrop-filter: blur(2px);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      z-index:20;
+    }
+    .cal-loading-box{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding:10px 14px;
+      border:1px solid #e5e7eb;
+      background:#fff;
+      border-radius:12px;
+      box-shadow:0 10px 24px rgba(0,0,0,0.08);
+      font-weight:700;
+      color:#111827;
+      font-size:13px;
+    }
+    .spinner{
+      width:18px;
+      height:18px;
+      border:2px solid #e5e7eb;
+      border-top-color:#4f46e5;
+      border-radius:999px;
+      animation:spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform:rotate(360deg); } }
+
+    /* =========================================================
+      RESPONSIVE
+    ========================================================= */
+    @media (max-width:700px){
+      .container{ max-width:520px; padding:20px; }
+      .two-col{ grid-template-columns:1fr; }
+      .title{ font-size:20px; }
+      .subtitle{ font-size:13px; }
+      .btn{ width:100%; }
+    }
+    @media (max-width:520px){
+      .cal-day{ min-height:110px; }
+    }
+
+    /* ✅ STEP 4 REVIEW (IMPROVED PREMIUM DESIGN) */
+    .review-card{
+      margin-top:12px;
+      border:1px solid #e5e7eb;
+      border-radius:18px;
+      background:#ffffff;
+      overflow:hidden;
+      box-shadow:0 18px 44px rgba(17,24,39,0.10);
+    }
+
+    .review-hero{
+      padding:16px 16px 14px;
+      background:
+        radial-gradient(900px 240px at 10% 0%, rgba(79,70,229,.16), transparent 55%),
+        radial-gradient(900px 240px at 95% 0%, rgba(16,185,129,.14), transparent 55%),
+        linear-gradient(180deg, #f8fafc, #ffffff);
+      border-bottom:1px solid #eef2f7;
+    }
+
+    .review-hero-top{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
+    }
+
+    .review-title{
+      font-weight:900;
+      font-size:18px;
+      color:#111827;
+      margin:0 0 3px;
+      letter-spacing:.2px;
+    }
+
+    .review-sub{
+      font-size:13px;
+      color:#6b7280;
+      margin:0;
+    }
+
+    .review-chipbar{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      margin-top:12px;
+    }
+
+    .chip{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:7px 10px;
+      border-radius:999px;
+      border:1px solid #e5e7eb;
+      background:#ffffff;
+      font-size:12px;
+      font-weight:800;
+      color:#111827;
+      box-shadow:0 8px 18px rgba(17,24,39,0.06);
+    }
+
+    .chip i{
+      width:20px;
+      height:20px;
+      border-radius:999px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      background:#eef2ff;
+      color:#4f46e5;
+      font-style:normal;
+      font-weight:900;
+      font-size:12px;
+    }
+
+    .chip.ok i{ background:#ecfdf5; color:#047857; }
+    .chip.warn i{ background:#fff7ed; color:#9a3412; }
+
+    .review-body{
+      padding:14px 14px 6px;
+    }
+
+    .review-grid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:14px;
+    }
+
+    .review-section{
+      border:1px solid #eef2f7;
+      border-radius:16px;
+      padding:12px;
+      background:
+        linear-gradient(180deg, #ffffff, #fbfdff);
+    }
+
+    .review-section-title{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      margin:0 0 10px;
+    }
+
+    .review-section-title .left{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      font-weight:900;
+      font-size:13px;
+      color:#111827;
+    }
+
+    .badge{
+      font-size:11px;
+      font-weight:900;
+      padding:5px 9px;
+      border-radius:999px;
+      border:1px solid #e5e7eb;
+      background:#f8fafc;
+      color:#374151;
+    }
+
+    .icon-pill{
+      width:28px;
+      height:28px;
+      border-radius:12px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:#eef2ff;
+      color:#4f46e5;
+      font-weight:900;
+      font-size:13px;
+    }
+
+    .review-row{
+      display:grid;
+      grid-template-columns:140px 1fr;
+      gap:12px;
+      padding:10px 0;
+      border-top:1px dashed #eef2f7;
+    }
+    .review-row:first-of-type{ border-top:none; padding-top:0; }
+
+    .review-k{
+      font-size:12px;
+      color:#6b7280;
+      font-weight:800;
+    }
+
+    .review-v{
+      font-size:13px;
+      color:#111827;
+      font-weight:900;
+      text-align:right;
+      word-break:break-word;
+    }
+
+    .review-v .total-red{ font-weight:950; }
+
+    .review-footer{
+      margin-top:12px;
+      padding:12px 14px;
+      border-top:1px solid #eef2f7;
+      background:
+        linear-gradient(180deg, #f8fafc, #ffffff);
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
+      flex-wrap:wrap;
+    }
+
+    .review-note{
+      flex:1;
+      min-width:240px;
+      font-size:12px;
+      color:#374151;
+      line-height:1.55;
+      padding:10px 12px;
+      border:1px solid #e5e7eb;
+      border-radius:14px;
+      background:#ffffff;
+    }
+
+    .review-confirm{
+      flex:0 0 auto;
+      min-width:220px;
+      padding:10px 12px;
+      border:1px solid #c7d2fe;
+      border-radius:14px;
+      background:#eef2ff;
+      color:#111827;
+      font-size:12px;
+      font-weight:800;
+    }
+
+    .review-confirm label{
+      display:flex;
+      align-items:flex-start;
+      gap:10px;
+      margin:0;
+      font-size:12px;
+      color:#111827;
+      font-weight:800;
+    }
+
+    .review-confirm input[type="checkbox"]{
+      margin-top:2px;
+      width:16px;
+      height:16px;
+      accent-color:#4f46e5;
+    }
+
+    .review-confirm small{
+      display:block;
+      color:#4b5563;
+      font-weight:700;
+      margin-top:3px;
+    }
+
+    /* Make submit button feel premium */
+    .btn.submit{
+      box-shadow:0 12px 26px rgba(22,163,74,0.22);
+    }
+    .btn.submit:disabled{
+      opacity:.65;
+      cursor:not-allowed;
+      box-shadow:none;
+    }
+
+    /* Mobile */
+    @media (max-width:700px){
+      .review-grid{ grid-template-columns:1fr; }
+      .review-row{ grid-template-columns:1fr; }
+      .review-v{ text-align:left; }
+      .review-confirm{ width:100%; min-width:unset; }
+    }
+
+    /* ========= Consent & Declaration (Step 4) ========= */
+    .consent-wrap{
+      margin-top: 14px;
+      border-radius: 14px;
+      background: #f3f0ff;
+      border: 1px solid #e6e1ff;
+      overflow: hidden;
+    }
+
+    .consent-head{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding: 14px 16px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .consent-title{
+      font-weight: 800;
+      color:#111827;
+      display:flex;
+      align-items:center;
+      gap:10px;
+    }
+
+    .consent-req{
+      color:#ef4444;
+      font-weight: 900;
+      margin-left: 6px;
+    }
+
+    .consent-toggle{
+      font-size: 13px;
+      color:#4b5563;
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
+
+    .consent-body{
+      padding: 0 16px 16px;
+      display: none;
+    }
+
+    .consent-body.open{ display:block; }
+
+    .consent-text{
+      background:#ffffff;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 14px;
+      color:#111827;
+      line-height: 1.55;
+      font-size: 14px;
+    }
+
+    .consent-text p{ margin: 0 0 12px; }
+
+    .consent-check{
+      margin-top: 12px;
+      display:flex;
+      align-items:center;
+      gap:10px;
+      font-size: 14px;
+      color:#111827;
+    }
+
+    .consent-check input{
+      width: 18px;
+      height: 18px;
+    }
+
+    .consent-error{
+      margin-top: 8px;
+      font-size: 12px;
+      color:#b91c1c;
+      display:none;
+    }
+
+    .consent-wrap.invalid{
+      border-color:#fecaca;
+      background:#fef2f2;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h1 class="title">VFS Appointment System</h1>
+    <p class="subtitle">Please complete the form step by step</p>
+
+    <!-- Step indicators -->
+    <div class="steps">
+      <div class="step active">1</div>
+      <div class="step">2</div>
+      <div class="step">3</div>
+      <div class="step">4</div>
+    </div>
+
+    <!-- Notice (success/error info) -->
+    <div class="notice" id="noticeBox"></div>
+
+    <form id="appointmentForm">
+
+      <!-- ===================== STEP 1 ===================== -->
+      <div class="form-step active" id="step1">
+        <div class="two-col">
+          <div class="field">
+            <label>Email Address (active and accessible)<span class="req">*</span></label>
+            <input id="email" type="email" required placeholder="e.g., name@email.com" />
+            <div class="helper" id="emailHelper">This field is required.</div>
+          </div>
+
+          <div class="field">
+            <label>Mobile Number<span class="req">*</span></label>
+            <input id="mobile" type="tel" required placeholder="e.g., 09XXXXXXXXX" />
+            <div class="helper" id="mobileHelper">This field is required.</div>
+          </div>
+
+          <div class="field">
+            <label>Surname (as in passport)<span class="req">*</span></label>
+            <input id="surname" type="text" required placeholder="e.g., Dela Cruz" />
+            <div class="helper" id="surnameHelper">This field is required.</div>
+          </div>
+
+          <div class="field">
+            <label>Given Name (as in passport)<span class="req">*</span></label>
+            <input id="givenName" type="text" required placeholder="e.g., Juan" />
+            <div class="helper" id="givenHelper">This field is required.</div>
+          </div>
+
+          <div class="field">
+            <label>Middle Name (as in passport)<span class="req">*</span></label>
+            <input id="middleName" type="text" required placeholder="e.g., Santos" />
+            <div class="helper" id="middleHelper">This field is required.</div>
+
+            <label class="no-middle">
+              <input type="checkbox" id="noMiddleCheck" />
+              I don’t have a middle name
+            </label>
+          </div>
+
+          <div class="field">
+            <label>Suffix (if applicable)</label>
+            <select id="suffix">
+              <option value="" selected>None</option>
+              <option value="Jr.">Jr.</option>
+              <option value="Sr.">Sr.</option>
+              <option value="II">II</option>
+              <option value="III">III</option>
+              <option value="IV">IV</option>
+            </select>
+          </div>
+
+          <div class="field full">
+            <label>Municipality / City (Bataan)<span class="req">*</span></label>
+            <select id="municipality" required>
+              <option value="" disabled selected>Select your municipality</option>
+              <option>Abucay</option><option>Bagac</option><option>Balanga City</option>
+              <option>Dinalupihan</option><option>Hermosa</option><option>Limay</option>
+              <option>Mariveles</option><option>Morong</option><option>Orani</option>
+              <option>Orion</option><option>Pilar</option><option>Samal</option>
+            </select>
+            <div class="helper" id="muniHelper">This field is required.</div>
+          </div>
+
+          <div class="field full">
+            <label>Are you a permanent resident of Bataan?<span class="req">*</span></label>
+            <div class="radio-group" data-group="resident" id="residentGroup">
+              <label class="radio-option"><input type="radio" name="resident" value="Yes" required /> Yes</label>
+              <label class="radio-option"><input type="radio" name="resident" value="No" /> No</label>
+            </div>
+            <div class="helper" id="residentHelper">This field is required.</div>
+          </div>
+
+          <div class="field full">
+            <label>Are you an OFW?<span class="req">*</span></label>
+            <div class="radio-group" data-group="ofw" id="ofwGroup">
+              <label class="radio-option"><input type="radio" name="ofw" value="Yes" required /> Yes</label>
+              <label class="radio-option"><input type="radio" name="ofw" value="No" /> No</label>
+            </div>
+            <div class="helper" id="ofwHelper">This field is required.</div>
+          </div>
+        </div>
+
+        <div class="buttons">
+          <button type="button" class="btn next" id="step1Next">Next</button>
+        </div>
+      </div>
+
+      <!-- ===================== STEP 2 ===================== -->
+      <div class="form-step" id="step2">
+        <div class="field full">
+          <label>Country / Mission<span class="req">*</span></label>
+          <select id="countryType" required>
+            <option value="" disabled selected>Loading countries...</option>
+          </select>
+          <div class="helper" id="countryHelper">This field is required.</div>
+
+          <!-- Service dropdown (only shows if multiple prices match pax) -->
+          <div id="serviceWrap" style="display:none;">
+            <label>Select Service / Category<span class="req">*</span></label>
+            <select id="serviceSelect"></select>
+            <div class="helper" id="serviceHelper">Please select a service.</div>
+          </div>
+
+          <label>Number of Pax<span class="req">*</span></label>
+          <input id="paxCount" type="number" inputmode="numeric" min="1" step="1" required placeholder="e.g., 1" />
+          <div class="helper" id="paxHelper">Please enter a valid number of pax (minimum 1).</div>
+
+          <!-- Pricing display -->
+          <div class="price-box" id="priceBox">
+            <strong>Price:</strong> <span id="priceText">Select a country and enter pax to see pricing.</span>
+            <div class="price-muted" id="priceNote"></div>
+          </div>
+
+          <div class="field full">
+            <label>Intended Travel Date<span class="req">*</span></label>
+            <input id="apptDate" type="date" required />
+            <div class="helper" id="dateHelper">This field is required.</div>
+          </div>
+
+          <div class="field full">
+            <label>Application Type<span class="req">*</span></label>
+            <div class="radio-group" data-group="appType" id="appTypeGroup">
+              <label class="radio-option"><input type="radio" name="appType" value="Individual" required /> Individual</label>
+              <label class="radio-option"><input type="radio" name="appType" value="Travel Agency" /> Travel Agency</label>
+            </div>
+            <div class="helper" id="appTypeHelper">This field is required.</div>
+          </div>
+        </div>
+
+        <div class="field full">
+          <label>Visa Type Applied For<span class="req">*</span></label>
+          <select id="visaType" required>
+            <option value="" disabled selected>Select visa type</option>
+            <option value="Tourist">Tourist</option>
+            <option value="Business">Business</option>
+            <option value="Work">Work</option>
+            <option value="Student">Student</option>
+            <option value="Family / Dependent">Family / Dependent</option>
+            <option value="Other">Other</option>
+          </select>
+          <div class="helper" id="visaTypeHelper">This field is required.</div>
+        </div>
+
+        <!-- Visa other -->
+        <div class="field full" id="otherVisaWrap" style="display:none;">
+          <label>Please specify other visa type<span class="req">*</span></label>
+          <input id="otherVisaType" type="text" placeholder="Type visa type here..." />
+          <div class="helper" id="otherVisaHelper">This field is required.</div>
+        </div>
+
+        <div class="field full">
+          <label>Entry Type<span class="req">*</span></label>
+          <select id="entryType" required>
+            <option value="" disabled selected>Select entry type</option>
+            <option value="Single Entry">Single Entry</option>
+            <option value="Double Entry">Double Entry</option>
+            <option value="Multiple Entry">Multiple Entry</option>
+          </select>
+          <div class="helper" id="entryTypeHelper">This field is required.</div>
+        </div>
+
+        <div class="field full">
+          <label>Is this a first-time Visa Application for this country?<span class="req">*</span></label>
+          <div class="radio-group" data-group="firstTimeVisa" id="firstTimeVisaGroup">
+            <label class="radio-option"><input type="radio" name="firstTimeVisa" value="Yes" required /> Yes</label>
+            <label class="radio-option"><input type="radio" name="firstTimeVisa" value="No" /> No</label>
+          </div>
+          <div class="helper" id="firstTimeVisaHelper">This field is required.</div>
+        </div>
+
+        <div class="field full">
+          <label>Have you accomplished your visa application form?<span class="req">*</span></label>
+          <div class="radio-group" data-group="appFormDone" id="appFormDoneGroup">
+            <label class="radio-option"><input type="radio" name="appFormDone" value="Yes" required /> Yes</label>
+            <label class="radio-option"><input type="radio" name="appFormDone" value="No" /> No</label>
+          </div>
+          <div class="helper" id="appFormDoneHelper">This field is required.</div>
+        </div>
+
+        <div class="buttons">
+          <button type="button" class="btn back">Back</button>
+          <button type="button" class="btn next" id="step2Next">Next</button>
+        </div>
+      </div>
+
+      <!-- ===================== STEP 3 ===================== -->
+      <div class="form-step" id="step3">
+        <h3>Choose Appointment Schedule</h3>
+
+        <div class="price-box" id="windowBox" style="margin-top:10px;">
+          <strong>Allowed Window:</strong>
+          <div id="windowText" class="price-muted">Select your Country + Intended Travel Date in Step 2.</div>
+          <div id="processingText" class="price-muted"></div>
+        </div>
+
+        <div class="calendar-wrap">
+          <!-- Calendar loading overlay -->
+          <div class="cal-loading" id="calLoading" style="display:none;">
+            <div class="cal-loading-box">
+              <div class="spinner"></div>
+              <div>Loading calendar…</div>
+            </div>
+          </div>
+
+          <div class="cal-head">
+            <button type="button" class="cal-nav" id="calPrev">‹</button>
+            <div class="cal-title" id="calTitle">Month YYYY</div>
+            <button type="button" class="cal-nav" id="calNext">›</button>
+          </div>
+
+          <div class="cal-grid cal-dow">
+            <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
+          </div>
+
+          <div class="cal-grid" id="calDays"></div>
+
+          <div class="helper" id="slotHelper" style="display:none; margin-top:10px;">
+            Please select a date and time (AM or PM).
+          </div>
+
+          <div class="selected-box" id="selectedBox" style="display:none;">
+            <strong>Selected:</strong> <span id="selectedText"></span>
+          </div>
+
+          <!-- Hidden values that will be saved -->
+          <input type="hidden" id="appointmentDate" />
+          <input type="hidden" id="appointmentSession" />
+        </div>
+
+        <!-- Source section (Step 3) -->
+        <div class="field full" style="margin-top:16px;">
+          <label>
+            Source (where did you find out about VFS Global @ the Bunker?) Click all that apply.
+            <span class="req">*</span>
+          </label>
+
+          <div class="check-group" id="sourceGroup">
+            <label class="check-option">
+              <input type="checkbox" name="source" value="Facebook (1Bataan / Gov.Joet)">
+              Facebook (1Bataan / Gov.Joet)
+            </label>
+
+            <label class="check-option">
+              <input type="checkbox" name="source" value="Facebook (InvestBataan / PPP & Investment Center)">
+              Facebook (InvestBataan / PPP & Investment Center)
+            </label>
+
+            <label class="check-option">
+              <input type="checkbox" name="source" value="Facebook (1BOSSCO/Peso Capitol Bataan/PESO Bataan)">
+              Facebook (1BOSSCO/Peso Capitol Bataan/PESO Bataan)
+            </label>
+
+            <label class="check-option">
+              <input type="checkbox" name="source" value="Word of Mouth">
+              Word of Mouth
+            </label>
+
+            <label class="check-option">
+              <input type="checkbox" name="source" value="YouTube">
+              YouTube
+            </label>
+
+            <label class="check-option">
+              <input type="checkbox" name="source" value="Tiktok">
+              Tiktok
+            </label>
+
+            <label class="check-option">
+              <input type="checkbox" id="sourceOtherCheck" name="source" value="Other">
+              Other
+            </label>
+          </div>
+
+          <div class="field full" id="sourceOtherWrap" style="display:none; margin-top:10px;">
+            <label>Please specify other source<span class="req">*</span></label>
+            <input id="sourceOtherText" type="text" placeholder="Type here..." />
+            <div class="helper" id="sourceOtherHelper">This field is required.</div>
+          </div>
+
+          <div class="helper" id="sourceHelper">Please select at least one source.</div>
+        </div>
+
+        <div class="buttons">
+          <button type="button" class="btn back">Back</button>
+          <button type="button" class="btn next" id="step3Next">Next</button>
+        </div>
+      </div>
+
+     <!-- ===================== STEP 4 (UPDATED) ===================== -->
+        <!-- ===================== STEP 4 (IMPROVED PREMIUM) ===================== -->
+      <div class="form-step" id="step4">
+        <div class="review-card" id="reviewCard">
+
+          <div class="review-hero">
+            <div class="review-hero-top">
+              <div>
+                <div class="review-title">Review & Submit</div>
+                <p class="review-sub" id="reviewSub">Please check your details before confirming.</p>
+              </div>
+
+              <div class="chip warn">
+                <i>!</i>
+                Are you sure?
+              </div>
+            </div>
+
+            <div class="review-chipbar">
+              <div class="chip">
+                <i>✉</i> <span id="chipEmail">Email</span>
+              </div>
+              <div class="chip">
+                <i>☎</i> <span id="chipMobile">Mobile</span>
+              </div>
+              <div class="chip ok">
+                <i>₱</i> <span id="chipTotal">Total</span>
+              </div>
+              <div class="chip ok">
+                <i>📅</i> <span id="chipSlot">Slot</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="review-body">
+            <div class="review-grid">
+
+              <div class="review-section">
+                <div class="review-section-title">
+                  <div class="left">
+                    <div class="icon-pill">👤</div>
+                    Applicant
+                  </div>
+                  <div class="badge">Personal</div>
+                </div>
+
+                <div class="review-row">
+                  <div class="review-k">Full Name</div>
+                  <div class="review-v" id="r_fullname">-</div>
+                </div>
+                <div class="review-row">
+                  <div class="review-k">Email</div>
+                  <div class="review-v" id="r_email">-</div>
+                </div>
+                <div class="review-row">
+                  <div class="review-k">Mobile</div>
+                  <div class="review-v" id="r_mobile">-</div>
+                </div>
+              </div>
+
+              <div class="review-section">
+                <div class="review-section-title">
+                  <div class="left">
+                    <div class="icon-pill">🧾</div>
+                    Application
+                  </div>
+                  <div class="badge">Details</div>
+                </div>
+
+                <div class="review-row">
+                  <div class="review-k">Country / Mission</div>
+                  <div class="review-v" id="r_country">-</div>
+                </div>
+                <div class="review-row">
+                  <div class="review-k">Pax</div>
+                  <div class="review-v" id="r_pax">-</div>
+                </div>
+                <div class="review-row">
+                  <div class="review-k">Pricing</div>
+                  <div class="review-v" id="r_price">-</div>
+                </div>
+                <div class="review-row">
+                  <div class="review-k">Intended Travel Date</div>
+                  <div class="review-v" id="r_traveldate">-</div>
+                </div>
+                <div class="review-row">
+                  <div class="review-k">Appointment Slot</div>
+                  <div class="review-v" id="r_slot">-</div>
+                </div>
+
+                <div class="review-row">
+                  <div class="review-k">Visa Type</div>
+                  <div class="review-v" id="r_visa">-</div>
+                </div>
+                <div class="review-row">
+                  <div class="review-k">Entry Type</div>
+                  <div class="review-v" id="r_entry">-</div>
+                </div>
+                <div class="review-row">
+                  <div class="review-k">Application Type</div>
+                  <div class="review-v" id="r_apptype">-</div>
+                </div>
+                <div class="review-row">
+                  <div class="review-k">First-time Visa</div>
+                  <div class="review-v" id="r_firsttime">-</div>
+                </div>
+                <div class="review-row">
+                  <div class="review-k">Form Done</div>
+                  <div class="review-v" id="r_formdone">-</div>
+                </div>
+              </div>
+
+            </div>
+
+            <div class="review-footer">
+              <div class="review-note" id="reviewNote">
+                <b>Note:</b> Please arrive <b>15 minutes early</b>. Bring your passport and requirements.
+              </div>
+
+              <!-- ✅ Confirmation checkbox (Are you sure?) -->
+              <div class="review-confirm">
+                <label>
+                  <input type="checkbox" id="confirmCheck" />
+                  <div>
+                    I confirm the information is correct.
+                    <small>You can still go back and edit.</small>
+                  </div>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+                <!-- ✅ Consent & Declaration (click to open) -->
+        <div class="consent-wrap" id="consentBox">
+          <div class="consent-head" id="consentHead">
+            <div class="consent-title">
+              Consent and Declaration <span class="consent-req">*</span>
+            </div>
+            <div class="consent-toggle">
+              <span id="consentArrow">▸</span>
+              <span>Click to view</span>
+            </div>
+          </div>
+
+          <div class="consent-body" id="consentBody">
+            <div class="consent-text">
+              <p>
+                I hereby certify that <b>all information I have provided in this application is true, accurate, and complete</b>
+                to the best of my knowledge. I understand that the submission of incomplete, inaccurate, or inconsistent
+                information may result in the deferment, rescheduling, or non-processing of my visa application to a subsequent
+                VFS Global visit.
+              </p>
+              <p>
+                I further acknowledge and agree that the personal information I have provided may be collected, used, shared,
+                and processed by the <b>Provincial Government of Bataan</b> and <b>VFS Global</b>, solely for the purposes of
+                appointment scheduling, verification, coordination, and facilitation of my visa application, in accordance with
+                applicable data privacy laws and regulations.
+              </p>
+            </div>
+
+            <label class="consent-check">
+              <input type="checkbox" id="consentAgree" />
+              I agree and give my consent
+            </label>
+
+            <div class="consent-error" id="consentErr">Consent is required before submitting.</div>
+          </div>
+        </div>
+
+
+        <div class="buttons">
+          <button type="button" class="btn back">Back</button>
+          <button type="submit" class="btn submit" id="submitBtn" disabled>Confirm Appointment</button>
+        </div>
+      </div>
+
+    </form>
+  </div>
+
+    <script>
+    /* =========================================================
+      API CONFIG (FOR GITHUB HOSTING)
+    ========================================================= */
+    const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbyWbD2bPQNrTcRlzEiOpAKnMh38MO9bK0FwktXC5ryFEvSLCVcLMyyy4sJ4Hpr8UZNOTQ/exec";
+
+    async function apiGet(fn, p1="", p2=""){
+      const url = `${WEBAPP_URL}?fn=${encodeURIComponent(fn)}&p1=${encodeURIComponent(p1)}&p2=${encodeURIComponent(p2)}`;
+      const res = await fetch(url);
+      const json = await res.json();
+      if (!json.ok) throw new Error(json.message || "API error");
+      return json.data;
+    }
+
+    async function apiPost(fn, data){
+      const res = await fetch(WEBAPP_URL, {
+        method: "POST",
+        headers: { "Content-Type":"text/plain;charset=utf-8" },
+        body: JSON.stringify({ fn, data })
+      });
+      const json = await res.json();
+      if (!json.ok) throw new Error(json.message || "API error");
+      return json.data;
+    }
+
+    /* =========================================================
+      GLOBAL STATE
+    ========================================================= */
+    let PUBLIC_COUNTRIES = [];
+    let COUNTRY_NAME_TO_ID = {};
+    let COUNTRY_ID_TO_PROC = {}; // processing_days
+
+    let PRICE_ROWS_FOR_COUNTRY = [];
+    let SELECTED_PRICE_ROW = null;
+
+    let SELECTED_COUNTRY_ID = "";
+    let SELECTED_PROC_DAYS = 0;
+
+    let LATEST_AVAILABLE_ISO = "";
+    let NEAREST_AVAILABLE_ISO = "";
+
+    // Availability map by date
+    // { "YYYY-MM-DD": { is_open, capacity_am, booked_am, capacity_pm, booked_pm } }
+    let AVAIL_MAP = {};
+
+    /* =========================================================
+      STEP NAVIGATION
+    ========================================================= */
+    const steps = document.querySelectorAll(".form-step");
+    const indicators = document.querySelectorAll(".step");
+    const backBtns = document.querySelectorAll(".back");
+    const noticeBox = document.getElementById("noticeBox");
+    let currentStep = 0;
+
+    function updateSteps() {
+      steps.forEach((step, index) => {
+        step.classList.toggle("active", index === currentStep);
+        if (indicators[index]) indicators[index].classList.toggle("active", index === currentStep);
+      });
+    }
+
+    function showNotice(msg, ok=true) {
+      noticeBox.style.display = "block";
+      noticeBox.style.borderColor = ok ? "#86efac" : "#fecaca";
+      noticeBox.style.background = ok ? "#f0fdf4" : "#fef2f2";
+      noticeBox.style.color = ok ? "#166534" : "#991b1b";
+      noticeBox.textContent = msg;
+    }
+
+    function hideNotice() {
+      noticeBox.style.display = "none";
+      noticeBox.textContent = "";
+    }
+
+    function markInvalid(el, helperEl) {
+      if (!el) return;
+      el.classList.add("invalid");
+      if (helperEl) helperEl.style.display = "block";
+    }
+
+    function clearInvalid(el, helperEl) {
+      if (!el) return;
+      el.classList.remove("invalid");
+      if (helperEl) helperEl.style.display = "none";
+    }
+
+    function attachClearOnInput(inputId, helperId) {
+      const input = document.getElementById(inputId);
+      const helper = document.getElementById(helperId);
+      if (!input) return;
+
+      const handler = () => {
+        if (String(input.value || "").trim() !== "") {
+          clearInvalid(input, helper);
+          hideNotice();
+        }
+      };
+      input.addEventListener("input", handler);
+      input.addEventListener("change", handler);
+    }
+
+    /* =========================================================
+      UTILS
+    ========================================================= */
+    function toNum(x, fallback=0){
+      const n = Number(String(x ?? "").replace(/,/g,"").trim());
+      return Number.isFinite(n) ? n : fallback;
+    }
+
+    function fmtMoney(currency, n) {
+      const val = Number(n || 0).toLocaleString("en-PH");
+      return currency ? `${currency} ${val}` : val;
+    }
+
+    function isValidEmail(email) {
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    }
+
+    /* =========================================================
+      INPUT ELEMENTS
+    ========================================================= */
+    const emailEl = document.getElementById("email");
+    const mobileEl = document.getElementById("mobile");
+    const noMiddleCheck = document.getElementById("noMiddleCheck");
+    const middleNameEl = document.getElementById("middleName");
+
+    const countryTypeEl = document.getElementById("countryType");
+    const paxCountEl = document.getElementById("paxCount");
+    const priceTextEl = document.getElementById("priceText");
+    const priceNoteEl = document.getElementById("priceNote");
+
+    const serviceWrap = document.getElementById("serviceWrap");
+    const serviceSelect = document.getElementById("serviceSelect");
+
+    const apptDateEl = document.getElementById("apptDate");
+    const visaTypeEl = document.getElementById("visaType");
+    const entryTypeEl = document.getElementById("entryType");
+    const otherVisaWrap = document.getElementById("otherVisaWrap");
+    const otherVisaEl = document.getElementById("otherVisaType");
+
+    const sourceGroupEl = document.getElementById("sourceGroup");
+    const sourceHelperEl = document.getElementById("sourceHelper");
+    const sourceOtherCheckEl = document.getElementById("sourceOtherCheck");
+    const sourceOtherWrapEl = document.getElementById("sourceOtherWrap");
+    const sourceOtherTextEl = document.getElementById("sourceOtherText");
+
+    /* =========================================================
+      CHECKBOX CARDS
+    ========================================================= */
+    function setupCheckboxCards(groupId){
+      const group = document.getElementById(groupId);
+      if (!group) return;
+
+      const labels = group.querySelectorAll(".check-option");
+      labels.forEach(label => {
+        const cb = label.querySelector('input[type="checkbox"]');
+        cb.addEventListener("change", () => {
+          label.classList.toggle("selected", cb.checked);
+          group.classList.remove("invalid");
+          if (sourceHelperEl) sourceHelperEl.style.display = "none";
+          hideNotice();
+        });
+        label.classList.toggle("selected", cb.checked);
+      });
+    }
+    setupCheckboxCards("sourceGroup");
+
+    function toggleSourceOther(){
+      const isOther = !!(sourceOtherCheckEl && sourceOtherCheckEl.checked);
+      if (!sourceOtherWrapEl || !sourceOtherTextEl) return;
+
+      sourceOtherWrapEl.style.display = isOther ? "block" : "none";
+      sourceOtherTextEl.required = isOther;
+
+      if (!isOther){
+        sourceOtherTextEl.value = "";
+        clearInvalid(sourceOtherTextEl, document.getElementById("sourceOtherHelper"));
+      }
+    }
+
+    if (sourceOtherCheckEl){
+      sourceOtherCheckEl.addEventListener("change", () => {
+        toggleSourceOther();
+        hideNotice();
+      });
+    }
+
+    if (sourceOtherTextEl){
+      sourceOtherTextEl.addEventListener("input", () => {
+        if (sourceOtherTextEl.value.trim()){
+          clearInvalid(sourceOtherTextEl, document.getElementById("sourceOtherHelper"));
+          hideNotice();
+        }
+      });
+    }
+    toggleSourceOther();
+
+    /* =========================================================
+      PRICE LOADING TEXT
+    ========================================================= */
+    function showPriceLoading(){
+      priceTextEl.textContent = "Loading… please wait";
+      priceNoteEl.textContent = "";
+    }
+
+    /* =========================================================
+      EMAIL VALIDATION LIVE
+    ========================================================= */
+    if (emailEl) {
+      emailEl.addEventListener("input", () => {
+        if (isValidEmail(emailEl.value.trim())) {
+          clearInvalid(emailEl, document.getElementById("emailHelper"));
+          hideNotice();
+        }
+      });
+    }
+
+    /* =========================================================
+      MOBILE FORMATTING (PH)
+    ========================================================= */
+    function formatPHMobile(digits) {
+      if (digits.length <= 4) return digits;
+      if (digits.length <= 7) return digits.slice(0,4) + " " + digits.slice(4);
+      return digits.slice(0,4) + " " + digits.slice(4,7) + " " + digits.slice(7,11);
+    }
+
+    if (mobileEl) {
+      mobileEl.setAttribute("inputmode", "numeric");
+      mobileEl.setAttribute("autocomplete", "tel");
+      mobileEl.setAttribute("maxlength", "13");
+
+      mobileEl.addEventListener("keydown", (e) => {
+        if (e.ctrlKey || e.metaKey) return;
+        const allowed = ["Backspace","Delete","ArrowLeft","ArrowRight","Tab","Home","End"];
+        if (allowed.includes(e.key)) return;
+        if (!/^[0-9]$/.test(e.key)) e.preventDefault();
+      });
+
+      mobileEl.addEventListener("input", () => {
+        const digits = mobileEl.value.replace(/\D/g, "").slice(0, 11);
+        mobileEl.value = formatPHMobile(digits);
+        clearInvalid(mobileEl, document.getElementById("mobileHelper"));
+        hideNotice();
+      });
+
+      mobileEl.addEventListener("paste", (e) => {
+        e.preventDefault();
+        const pasted = (e.clipboardData || window.clipboardData).getData("text");
+        const digits = String(pasted).replace(/\D/g, "").slice(0, 11);
+        mobileEl.value = formatPHMobile(digits);
+        clearInvalid(mobileEl, document.getElementById("mobileHelper"));
+        hideNotice();
+      });
+    }
+
+    /* =========================================================
+      CLEAR-ON-INPUT HOOKS
+    ========================================================= */
+    attachClearOnInput("surname", "surnameHelper");
+    attachClearOnInput("givenName", "givenHelper");
+    attachClearOnInput("middleName", "middleHelper");
+    attachClearOnInput("municipality", "muniHelper");
+    attachClearOnInput("countryType", "countryHelper");
+    attachClearOnInput("paxCount", "paxHelper");
+    attachClearOnInput("apptDate", "dateHelper");
+    attachClearOnInput("visaType", "visaTypeHelper");
+    attachClearOnInput("entryType", "entryTypeHelper");
+
+    /* =========================================================
+      DATE: block past dates
+    ========================================================= */
+    if (apptDateEl) {
+      const today = new Date();
+      const yyyy = today.getFullYear();
+      const mm = String(today.getMonth() + 1).padStart(2, "0");
+      const dd = String(today.getDate()).padStart(2, "0");
+      apptDateEl.min = `${yyyy}-${mm}-${dd}`;
+
+      apptDateEl.addEventListener("keydown", (e) => e.preventDefault());
+      apptDateEl.addEventListener("paste", (e) => e.preventDefault());
+      apptDateEl.addEventListener("change", () => {
+        clearInvalid(apptDateEl, document.getElementById("dateHelper"));
+        hideNotice();
+      });
+    }
+
+    /* =========================================================
+      MIDDLE NAME CHECKBOX
+    ========================================================= */
+    if (noMiddleCheck && middleNameEl) {
+      noMiddleCheck.addEventListener("change", () => {
+        const helper = document.getElementById("middleHelper");
+        if (noMiddleCheck.checked) {
+          middleNameEl.required = false;
+          middleNameEl.value = "N/A";
+          middleNameEl.disabled = true;
+          middleNameEl.classList.add("middle-disabled");
+          clearInvalid(middleNameEl, helper);
+          hideNotice();
+        } else {
+          middleNameEl.disabled = false;
+          middleNameEl.required = true;
+          middleNameEl.value = "";
+          middleNameEl.classList.remove("middle-disabled");
+        }
+      });
+    }
+
+    /* =========================================================
+      RADIO CARD HIGHLIGHT
+    ========================================================= */
+    function setupRadioCards(groupSelector, groupId, helperId) {
+      const group = document.querySelector(groupSelector);
+      const groupBox = document.getElementById(groupId);
+      const helper = document.getElementById(helperId);
+      if (!group) return;
+
+      const labels = group.querySelectorAll(".radio-option");
+      labels.forEach(label => {
+        const radio = label.querySelector('input[type="radio"]');
+        radio.addEventListener("change", () => {
+          labels.forEach(l => l.classList.remove("selected"));
+          label.classList.add("selected");
+          if (groupBox) groupBox.classList.remove("invalid");
+          if (helper) helper.style.display = "none";
+          hideNotice();
+        });
+      });
+    }
+    setupRadioCards('[data-group="resident"]', "residentGroup", "residentHelper");
+    setupRadioCards('[data-group="ofw"]', "ofwGroup", "ofwHelper");
+    setupRadioCards('[data-group="appType"]', "appTypeGroup", "appTypeHelper");
+    setupRadioCards('[data-group="appFormDone"]', "appFormDoneGroup", "appFormDoneHelper");
+    setupRadioCards('[data-group="firstTimeVisa"]', "firstTimeVisaGroup", "firstTimeVisaHelper");
+
+    /* =========================================================
+      STEP 1 NEXT
+    ========================================================= */
+    document.getElementById("step1Next").addEventListener("click", () => {
+      if (emailEl) emailEl.value = emailEl.value.replace(/\s+/g, "");
+
+      const email = document.getElementById("email");
+      const mobile = document.getElementById("mobile");
+      const surname = document.getElementById("surname");
+      const given = document.getElementById("givenName");
+      const middle = document.getElementById("middleName");
+      const muni = document.getElementById("municipality");
+
+      const resident = document.querySelector('input[name="resident"]:checked');
+      const ofw = document.querySelector('input[name="ofw"]:checked');
+
+      const residentGroup = document.getElementById("residentGroup");
+      const ofwGroup = document.getElementById("ofwGroup");
+
+      let ok = true;
+
+      ["emailHelper","surnameHelper","givenHelper","middleHelper","muniHelper","mobileHelper","residentHelper","ofwHelper"]
+        .forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.style.display = "none";
+        });
+
+      [email, mobile, surname, given, middle, muni].forEach(el => el && el.classList.remove("invalid"));
+      residentGroup && residentGroup.classList.remove("invalid");
+      ofwGroup && ofwGroup.classList.remove("invalid");
+
+      if (!email.value.trim() || !isValidEmail(email.value.trim())) {
+        ok = false;
+        markInvalid(email, document.getElementById("emailHelper"));
+        const h = document.getElementById("emailHelper");
+        if (h) h.textContent = "Please enter a valid email address (must contain @).";
+      }
+      if (!mobile.value.trim()) { ok = false; markInvalid(mobile, document.getElementById("mobileHelper")); }
+      if (!surname.value.trim()) { ok = false; markInvalid(surname, document.getElementById("surnameHelper")); }
+      if (!given.value.trim()) { ok = false; markInvalid(given, document.getElementById("givenHelper")); }
+      if (!noMiddleCheck.checked && !middle.value.trim()) { ok = false; markInvalid(middle, document.getElementById("middleHelper")); }
+      if (!muni.value) { ok = false; markInvalid(muni, document.getElementById("muniHelper")); }
+
+      if (!resident) {
+        ok = false;
+        residentGroup && residentGroup.classList.add("invalid");
+        const h = document.getElementById("residentHelper");
+        if (h) h.style.display = "block";
+      }
+
+      if (!ofw) {
+        ok = false;
+        ofwGroup && ofwGroup.classList.add("invalid");
+        const h = document.getElementById("ofwHelper");
+        if (h) h.style.display = "block";
+      }
+
+      if (ok) {
+        hideNotice();
+        currentStep = 1;
+        updateSteps();
+      } else {
+        showNotice("Please complete all required fields in Step 1.", false);
+      }
+    });
+
+    /* =========================================================
+      STEP 2: COUNTRIES + PRICES
+    ========================================================= */
+    async function loadCountriesIntoUser(){
+      try{
+        const rows = await apiGet("public_getCountries");
+
+        PUBLIC_COUNTRIES = rows || [];
+        COUNTRY_NAME_TO_ID = {};
+        COUNTRY_ID_TO_PROC = {};
+
+        countryTypeEl.innerHTML = `<option value="" disabled selected>Select a country</option>`;
+
+        PUBLIC_COUNTRIES.forEach(c => {
+          COUNTRY_NAME_TO_ID[c.country_name] = c.country_id;
+          COUNTRY_ID_TO_PROC[c.country_id] = toNum(c.processing_days, 14);
+
+          const opt = document.createElement("option");
+          opt.value = c.country_name;
+          opt.textContent = c.country_name;
+          countryTypeEl.appendChild(opt);
+        });
+      } catch(err){
+        console.error(err);
+        showNotice("Failed to load countries.", false);
+        countryTypeEl.innerHTML = `<option value="" disabled selected>Failed to load countries</option>`;
+      }
+    }
+
+    async function loadPricesForSelectedCountry(){
+      const countryName = countryTypeEl.value;
+      const countryId = COUNTRY_NAME_TO_ID[countryName];
+
+      PRICE_ROWS_FOR_COUNTRY = [];
+      SELECTED_PRICE_ROW = null;
+
+      serviceWrap.style.display = "none";
+      serviceSelect.innerHTML = "";
+
+      showPriceLoading();
+
+      if (!countryId){
+        updatePriceBoxFromSheet();
+        return;
+      }
+
+      try{
+        const rows = await apiGet("public_getPrices", countryId);
+
+        PRICE_ROWS_FOR_COUNTRY = (rows || []).map(r => ({
+          price_id: r.price_id || "",
+          country_id: r.country_id || countryId,
+          service_name: r.service_name || "",
+          price: toNum(r.price, 0),
+          currency: (r.currency || "PHP").toString().trim(),
+          notes: r.notes || "",
+          pricing_mode: (r.pricing_mode || "PER_PAX").toString().trim().toUpperCase(),
+          pax_min: toNum(r.pax_min, 1),
+          pax_max: toNum(r.pax_max, 999999)
+        }));
+
+        updatePriceBoxFromSheet();
+      } catch(err){
+        console.error(err);
+        showNotice("Failed to load prices.", false);
+        updatePriceBoxFromSheet();
+      }
+    }
+
+    function matchingRowsForPax(pax){
+      return PRICE_ROWS_FOR_COUNTRY.filter(r => pax >= r.pax_min && pax <= r.pax_max);
+    }
+
+    function rebuildServiceDropdownIfNeeded(pax){
+      const matches = matchingRowsForPax(pax);
+
+      if (matches.length > 1){
+        serviceWrap.style.display = "block";
+
+        const current = serviceSelect.value || "";
+        serviceSelect.innerHTML = `<option value="" disabled ${current ? "" : "selected"}>Select service</option>`;
+
+        matches.forEach(r => {
+          const label = `${r.service_name} (Pax ${r.pax_min}-${r.pax_max})`;
+          const opt = document.createElement("option");
+          opt.value = r.price_id || label;
+          opt.textContent = label;
+          serviceSelect.appendChild(opt);
+        });
+
+        if (current && [...serviceSelect.options].some(o => o.value === current)){
+          serviceSelect.value = current;
+        } else {
+          serviceSelect.value = "";
+        }
+      } else {
+        serviceWrap.style.display = "none";
+        serviceSelect.innerHTML = "";
+      }
+    }
+
+    function chooseRowForDisplay(pax){
+      const matches = matchingRowsForPax(pax);
+      if (matches.length === 0) return null;
+      if (matches.length === 1) return matches[0];
+
+      const chosenKey = serviceSelect.value;
+      if (!chosenKey) return null;
+      return matches.find(r => (r.price_id || "") === chosenKey) || null;
+    }
+
+    function updatePriceBoxFromSheet(){
+      const pax = toNum(paxCountEl.value, 0);
+
+      if (!countryTypeEl.value) {
+        priceTextEl.textContent = "Select a country and enter pax to see pricing.";
+        priceNoteEl.textContent = "";
+        SELECTED_PRICE_ROW = null;
+        serviceWrap.style.display = "none";
+        return;
+      }
+
+      if (!Number.isFinite(pax) || pax < 1) {
+        priceTextEl.textContent = "Enter a valid pax number (minimum 1).";
+        priceNoteEl.textContent = "";
+        SELECTED_PRICE_ROW = null;
+        serviceWrap.style.display = "none";
+        return;
+      }
+
+      if (!PRICE_ROWS_FOR_COUNTRY.length) {
+        priceTextEl.textContent = "No prices set in admin for this country.";
+        priceNoteEl.textContent = "";
+        SELECTED_PRICE_ROW = null;
+        serviceWrap.style.display = "none";
+        return;
+      }
+
+      rebuildServiceDropdownIfNeeded(pax);
+      const row = chooseRowForDisplay(pax);
+
+      if (!row){
+        const matches = matchingRowsForPax(pax);
+        if (matches.length > 1){
+          priceTextEl.textContent = "Multiple services match this pax. Please select a service.";
+        } else {
+          priceTextEl.textContent = "No price found for this pax range. Check admin pax_min/pax_max.";
+        }
+        priceNoteEl.textContent = "";
+        SELECTED_PRICE_ROW = null;
+        return;
+      }
+
+      SELECTED_PRICE_ROW = row;
+
+      const currency = row.currency || "PHP";
+      const unitPrice = toNum(row.price, 0);
+      const mode = row.pricing_mode;
+
+      let total = unitPrice;
+      let line = "";
+
+      if (mode === "PER_PAX"){
+        total = unitPrice * pax;
+        line = `${row.service_name}: ${fmtMoney(currency, unitPrice)} × ${pax} = <span class="total-red">${fmtMoney(currency, total)}</span>`;
+      } else {
+        total = unitPrice;
+        line = `${row.service_name}: <span class="total-red">${fmtMoney(currency, total)}</span> (fixed)`;
+      }
+
+      priceTextEl.innerHTML = line;
+      priceNoteEl.textContent = row.notes || "";
+    }
+
+    /* =========================================================
+      VISA: "Other" toggle
+    ========================================================= */
+    function toggleOtherVisa() {
+      const isOther = visaTypeEl.value === "Other";
+      otherVisaWrap.style.display = isOther ? "block" : "none";
+      otherVisaEl.required = isOther;
+      if (!isOther) {
+        otherVisaEl.value = "";
+        clearInvalid(otherVisaEl, document.getElementById("otherVisaHelper"));
+      }
+    }
+    visaTypeEl.addEventListener("change", () => { toggleOtherVisa(); hideNotice(); });
+    otherVisaEl.addEventListener("input", () => {
+      if (otherVisaEl.value.trim()) {
+        clearInvalid(otherVisaEl, document.getElementById("otherVisaHelper"));
+        hideNotice();
+      }
+    });
+    toggleOtherVisa();
+
+    /* =========================================================
+      CALENDAR + AVAILABILITY + PROCESSING DAYS
+    ========================================================= */
+    const calTitleEl = document.getElementById("calTitle");
+    const calDaysEl = document.getElementById("calDays");
+    const calPrevBtn = document.getElementById("calPrev");
+    const calNextBtn = document.getElementById("calNext");
+
+    const windowTextEl = document.getElementById("windowText");
+    const processingTextEl = document.getElementById("processingText");
+
+    const appointmentDateEl = document.getElementById("appointmentDate");
+    const appointmentSessionEl = document.getElementById("appointmentSession");
+    const selectedBoxEl = document.getElementById("selectedBox");
+    const selectedTextEl = document.getElementById("selectedText");
+    const slotHelperEl = document.getElementById("slotHelper");
+
+    const calLoadingEl = document.getElementById("calLoading");
+
+    function showCalLoading(){
+      if (calLoadingEl) calLoadingEl.style.display = "flex";
+      if (calPrevBtn) calPrevBtn.disabled = true;
+      if (calNextBtn) calNextBtn.disabled = true;
+    }
+    function hideCalLoading(){
+      if (calLoadingEl) calLoadingEl.style.display = "none";
+      if (calPrevBtn) calPrevBtn.disabled = false;
+      if (calNextBtn) calNextBtn.disabled = false;
+    }
+
+    let calCursor = new Date();
+    let lastAvailKey = ""; // "YYYY-MM"
+
+    function fmtISO(d){
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth()+1).padStart(2,"0");
+      const dd = String(d.getDate()).padStart(2,"0");
+      return `${yyyy}-${mm}-${dd}`;
+    }
+    function fmtLong(d){
+      return d.toLocaleDateString("en-PH", { year:"numeric", month:"long", day:"numeric" });
+    }
+    function isoToDate(iso){
+      if (!iso) return null;
+      const [y,m,d] = String(iso).split("-").map(Number);
+      if (!y || !m || !d) return null;
+      const dt = new Date(y, m-1, d);
+      return isNaN(dt.getTime()) ? null : dt;
+    }
+    function cloneDate(d){ return new Date(d.getFullYear(), d.getMonth(), d.getDate()); }
+
+    // NOTE: still calendar-days subtract (your original). If you want true working-days logic, tell me.
+    function subtractWorkingDays(date, days){
+      let d = cloneDate(date);
+      d.setDate(d.getDate() - Number(days || 0));
+      return d;
+    }
+
+    function getTravelDate(){
+      if (!apptDateEl || !apptDateEl.value) return null;
+      const parts = apptDateEl.value.split("-");
+      if (parts.length !== 3) return null;
+      const y = Number(parts[0]), m = Number(parts[1])-1, dd = Number(parts[2]);
+      const d = new Date(y, m, dd);
+      return isNaN(d.getTime()) ? null : d;
+    }
+
+    function computeAllowedWindow(){
+      const travel = getTravelDate();
+      if (!travel) return null;
+
+      const procDays = Number(SELECTED_PROC_DAYS || 0);
+      if (!Number.isFinite(procDays) || procDays <= 0) return null;
+
+      const latestByProcessing = subtractWorkingDays(travel, procDays);
+      return { travel, latestByProcessing, procDays };
+    }
+
+    /* ✅ FIXED: convert google.script.run → apiGet */
+    async function loadLatestAvailable(upToISO){
+      LATEST_AVAILABLE_ISO = "";
+      try{
+        const iso = await apiGet("public_getLatestAvailableDate", upToISO);
+        LATEST_AVAILABLE_ISO = iso || "";
+      } catch(err){
+        console.error(err);
+        LATEST_AVAILABLE_ISO = "";
+      }
+      renderCalendar();
+    }
+
+    async function loadNearestAvailable(upToISO){
+      NEAREST_AVAILABLE_ISO = "";
+      try{
+        const iso = await apiGet("public_getNearestAvailableFromToday", upToISO);
+        NEAREST_AVAILABLE_ISO = iso || "";
+      } catch(err){
+        console.error(err);
+        NEAREST_AVAILABLE_ISO = "";
+      }
+      renderCalendar();
+    }
+
+    /* Load availability for month */
+    async function loadAvailabilityForMonth(year, monthIndex){
+      const start = new Date(year, monthIndex, 1);
+      const end = new Date(year, monthIndex + 1, 0);
+      const from = fmtISO(start);
+      const to = fmtISO(end);
+
+      try{
+        const rows = await apiGet("public_getDays", from, to);
+
+        AVAIL_MAP = {};
+        (rows || []).forEach(r => {
+          const date = String(r.date);
+          AVAIL_MAP[date] = {
+            is_open: String(r.is_open).toUpperCase() === "TRUE",
+            capacity_am: Number(r.capacity_am || 0),
+            booked_am: Number(r.booked_am || 0),
+            capacity_pm: Number(r.capacity_pm || 0),
+            booked_pm: Number(r.booked_pm || 0)
+          };
+        });
+
+        renderCalendar();
+        hideCalLoading();
+      } catch(err){
+        console.error(err);
+        showNotice("Failed to load availability.", false);
+        AVAIL_MAP = {};
+        renderCalendar();
+        hideCalLoading();
+      }
+    }
+
+    function calendarEnsureAvailabilityThenRender(){
+      const y = calCursor.getFullYear();
+      const m = calCursor.getMonth();
+      const key = `${y}-${String(m+1).padStart(2,"0")}`;
+
+      showCalLoading();
+
+      if (key === lastAvailKey) {
+        renderCalendar();
+        hideCalLoading();
+        return;
+      }
+
+      lastAvailKey = key;
+      loadAvailabilityForMonth(y, m);
+    }
+
+    /* ✅ FIXED: remaining slots should be capacity - booked */
+    function getRemainingFromAvail(dateISO, session){
+      const row = AVAIL_MAP[dateISO];
+      if (!row) return null;
+      if (!row.is_open) return 0;
+
+      if (session === "AM") {
+        return Math.max(0, (row.capacity_am || 0) - (row.booked_am || 0));
+      }
+      return Math.max(0, (row.capacity_pm || 0) - (row.booked_pm || 0));
+    }
+
+    function renderCalendar(){
+      if (!calDaysEl || !calTitleEl) return;
+
+      const win = computeAllowedWindow();
+
+      if (!win){
+        windowTextEl.textContent = "Select your Country + Intended Travel Date in Step 2.";
+        processingTextEl.textContent = "";
+      } else {
+        windowTextEl.textContent =
+          `Appointments must be scheduled at least ${win.procDays} WORKING DAYS before travel. Available dates depend on VFS availability.`;
+
+        if (NEAREST_AVAILABLE_ISO){
+          processingTextEl.textContent =
+            `Nearest available appointment date: ${fmtLong(isoToDate(NEAREST_AVAILABLE_ISO))}`;
+        } else {
+          processingTextEl.textContent =
+            `Nearest available appointment date: (no slots found up to allowed limit)`;
+        }
+      }
+
+      const year = calCursor.getFullYear();
+      const month = calCursor.getMonth();
+      calTitleEl.textContent = calCursor.toLocaleDateString("en-PH", { month:"long", year:"numeric" });
+
+      const first = new Date(year, month, 1);
+      const startDow = first.getDay();
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+      calDaysEl.innerHTML = "";
+
+      for (let i = 0; i < startDow; i++){
+        const blank = document.createElement("div");
+        blank.className = "cal-day disabled";
+        blank.innerHTML = `<div class="cal-num"></div>`;
+        calDaysEl.appendChild(blank);
+      }
+
+      const maxAllowed = win ? win.latestByProcessing : null;
+
+      for (let day = 1; day <= daysInMonth; day++){
+        const d = new Date(year, month, day);
+        const iso = fmtISO(d);
+
+        let disabledDay = false;
+
+        const today = new Date();
+        today.setHours(0,0,0,0);
+        if (d < today) disabledDay = true;
+
+        if (!win) disabledDay = true;
+        else if (maxAllowed && d.getTime() > maxAllowed.getTime()) disabledDay = true;
+
+        const cell = document.createElement("div");
+        cell.className = "cal-day" + (disabledDay ? " disabled" : "");
+
+        const amRem = getRemainingFromAvail(iso, "AM");
+        const pmRem = getRemainingFromAvail(iso, "PM");
+
+        const amDisabled = disabledDay || amRem === null || amRem <= 0;
+        const pmDisabled = disabledDay || pmRem === null || pmRem <= 0;
+
+        const amLabel = (amRem === null) ? "-" : `${amRem} slots`;
+        const pmLabel = (pmRem === null) ? "-" : `${pmRem} slots`;
+
+        cell.innerHTML = `
+          <div class="cal-num">${day}</div>
+          <div class="slot-box">
+            <button type="button" class="slot-btn" data-date="${iso}" data-session="AM" ${amDisabled ? "disabled":""}>
+              <span>AM</span><span>${amLabel}</span>
+            </button>
+            <button type="button" class="slot-btn" data-date="${iso}" data-session="PM" ${pmDisabled ? "disabled":""}>
+              <span>PM</span><span>${pmLabel}</span>
+            </button>
+          </div>
+        `;
+        calDaysEl.appendChild(cell);
+      }
+
+      calDaysEl.querySelectorAll(".slot-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          calDaysEl.querySelectorAll(".slot-btn.selected").forEach(b => b.classList.remove("selected"));
+          btn.classList.add("selected");
+
+          const dateISO = btn.getAttribute("data-date");
+          const session = btn.getAttribute("data-session");
+
+          appointmentDateEl.value = dateISO;
+          appointmentSessionEl.value = session;
+
+          selectedBoxEl.style.display = "block";
+          selectedTextEl.textContent = `${dateISO} (${session})`;
+
+          slotHelperEl.style.display = "none";
+          hideNotice();
+        });
+      });
+    }
+
+    if (calPrevBtn) {
+      calPrevBtn.addEventListener("click", () => {
+        calCursor = new Date(calCursor.getFullYear(), calCursor.getMonth()-1, 1);
+        calendarEnsureAvailabilityThenRender();
+      });
+    }
+    if (calNextBtn) {
+      calNextBtn.addEventListener("click", () => {
+        calCursor = new Date(calCursor.getFullYear(), calCursor.getMonth()+1, 1);
+        calendarEnsureAvailabilityThenRender();
+      });
+    }
+
+    /* =========================================================
+      STEP 2 EVENTS
+    ========================================================= */
+    countryTypeEl.addEventListener("change", () => {
+      const countryName = countryTypeEl.value;
+      SELECTED_COUNTRY_ID = COUNTRY_NAME_TO_ID[countryName] || "";
+      SELECTED_PROC_DAYS = COUNTRY_ID_TO_PROC[SELECTED_COUNTRY_ID] || 0;
+
+      appointmentDateEl.value = "";
+      appointmentSessionEl.value = "";
+      selectedBoxEl.style.display = "none";
+
+      showPriceLoading();
+      loadPricesForSelectedCountry();
+
+      calendarEnsureAvailabilityThenRender();
+
+      clearInvalid(countryTypeEl, document.getElementById("countryHelper"));
+      hideNotice();
+    });
+
+    paxCountEl.addEventListener("input", () => {
+      updatePriceBoxFromSheet();
+      clearInvalid(paxCountEl, document.getElementById("paxHelper"));
+      hideNotice();
+    });
+
+    serviceSelect.addEventListener("change", () => {
+      updatePriceBoxFromSheet();
+      clearInvalid(serviceSelect, document.getElementById("serviceHelper"));
+      hideNotice();
+    });
+
+    /* =========================================================
+      STEP 2 NEXT
+    ========================================================= */
+    document.getElementById("step2Next").addEventListener("click", () => {
+      const appTypeChecked = document.querySelector('input[name="appType"]:checked');
+      const appTypeGroup = document.getElementById("appTypeGroup");
+
+      const appFormDoneChecked = document.querySelector('input[name="appFormDone"]:checked');
+      const appFormDoneGroup = document.getElementById("appFormDoneGroup");
+
+      const firstTimeVisaChecked = document.querySelector('input[name="firstTimeVisa"]:checked');
+      const firstTimeVisaGroup = document.getElementById("firstTimeVisaGroup");
+
+      let ok = true;
+
+      clearInvalid(countryTypeEl, document.getElementById("countryHelper"));
+      clearInvalid(paxCountEl, document.getElementById("paxHelper"));
+      clearInvalid(apptDateEl, document.getElementById("dateHelper"));
+      clearInvalid(visaTypeEl, document.getElementById("visaTypeHelper"));
+      clearInvalid(entryTypeEl, document.getElementById("entryTypeHelper"));
+      clearInvalid(otherVisaEl, document.getElementById("otherVisaHelper"));
+      clearInvalid(serviceSelect, document.getElementById("serviceHelper"));
+
+      appTypeGroup && appTypeGroup.classList.remove("invalid");
+      appFormDoneGroup && appFormDoneGroup.classList.remove("invalid");
+      firstTimeVisaGroup && firstTimeVisaGroup.classList.remove("invalid");
+
+      ["appTypeHelper","appFormDoneHelper","firstTimeVisaHelper"].forEach(id => {
+        const h = document.getElementById(id);
+        if (h) h.style.display = "none";
+      });
+
+      const pax = toNum(paxCountEl.value, 0);
+
+      if (!countryTypeEl.value) { ok = false; markInvalid(countryTypeEl, document.getElementById("countryHelper")); }
+      if (!paxCountEl.value || !Number.isFinite(pax) || pax < 1) { ok = false; markInvalid(paxCountEl, document.getElementById("paxHelper")); }
+
+      if (!SELECTED_PRICE_ROW) {
+        ok = false;
+        if (serviceWrap.style.display !== "none") {
+          markInvalid(serviceSelect, document.getElementById("serviceHelper"));
+        }
+        showNotice("Please make sure pricing is selected/available for your pax.", false);
+      }
+
+      if (!apptDateEl.value) { ok = false; markInvalid(apptDateEl, document.getElementById("dateHelper")); }
+      if (!visaTypeEl.value) { ok = false; markInvalid(visaTypeEl, document.getElementById("visaTypeHelper")); }
+      if (visaTypeEl.value === "Other" && !otherVisaEl.value.trim()) { ok = false; markInvalid(otherVisaEl, document.getElementById("otherVisaHelper")); }
+      if (!entryTypeEl.value) { ok = false; markInvalid(entryTypeEl, document.getElementById("entryTypeHelper")); }
+
+      if (!appTypeChecked) {
+        ok = false;
+        appTypeGroup && appTypeGroup.classList.add("invalid");
+        const h = document.getElementById("appTypeHelper");
+        if (h) h.style.display = "block";
+      }
+      if (!firstTimeVisaChecked) {
+        ok = false;
+        firstTimeVisaGroup && firstTimeVisaGroup.classList.add("invalid");
+        const h = document.getElementById("firstTimeVisaHelper");
+        if (h) h.style.display = "block";
+      }
+      if (!appFormDoneChecked) {
+        ok = false;
+        appFormDoneGroup && appFormDoneGroup.classList.add("invalid");
+        const h = document.getElementById("appFormDoneHelper");
+        if (h) h.style.display = "block";
+      }
+
+      if (!ok){
+        if (noticeBox.style.display === "none") {
+          showNotice("Please complete all required fields in Step 2.", false);
+        }
+        return;
+      }
+
+      hideNotice();
+
+      const now = new Date();
+      calCursor = new Date(now.getFullYear(), now.getMonth(), 1);
+      lastAvailKey = "";
+
+      currentStep = 2;
+      updateSteps();
+
+      const win = computeAllowedWindow();
+      const upToISO = win ? fmtISO(win.latestByProcessing) : "";
+
+      if (upToISO) {
+        loadLatestAvailable(upToISO);
+        loadNearestAvailable(upToISO);
+      } else {
+        LATEST_AVAILABLE_ISO = "";
+        NEAREST_AVAILABLE_ISO = "";
+      }
+
+      calendarEnsureAvailabilityThenRender();
+    });
+
+    /* =========================================================
+      BACK BUTTONS
+    ========================================================= */
+    backBtns.forEach(btn => {
+      btn.addEventListener("click", () => {
+        if (currentStep > 0) {
+          hideNotice();
+          currentStep--;
+          updateSteps();
+        }
+      });
+    });
+
+    if (apptDateEl){
+      apptDateEl.addEventListener("change", () => {
+        appointmentDateEl.value = "";
+        appointmentSessionEl.value = "";
+        selectedBoxEl.style.display = "none";
+        calendarEnsureAvailabilityThenRender();
+      });
+    }
+
+    /* =========================================================
+      STEP 3 NEXT -> STEP 4 (same as your original)
+    ========================================================= */
+    document.getElementById("step3Next").addEventListener("click", () => {
+      const chosenDate = appointmentDateEl.value;
+      const chosenSession = appointmentSessionEl.value;
+
+      if (!chosenDate || !chosenSession){
+        slotHelperEl.style.display = "block";
+        showNotice("Please select an appointment slot (AM/PM) in Step 3.", false);
+        return;
+      }
+
+      const selectedSources = [...document.querySelectorAll('input[name="source"]:checked')].map(x => x.value);
+
+      let sourceOk = true;
+
+      if (sourceGroupEl) sourceGroupEl.classList.remove("invalid");
+      if (sourceHelperEl) sourceHelperEl.style.display = "none";
+      clearInvalid(sourceOtherTextEl, document.getElementById("sourceOtherHelper"));
+
+      if (selectedSources.length === 0){
+        sourceOk = false;
+        if (sourceGroupEl) sourceGroupEl.classList.add("invalid");
+        if (sourceHelperEl) sourceHelperEl.style.display = "block";
+      }
+
+      if (sourceOtherCheckEl && sourceOtherCheckEl.checked && !sourceOtherTextEl.value.trim()){
+        sourceOk = false;
+        markInvalid(sourceOtherTextEl, document.getElementById("sourceOtherHelper"));
+      }
+
+      if (!sourceOk){
+        showNotice("Please select at least one Source in Step 3.", false);
+        return;
+      }
+
+      hideNotice();
+      currentStep = 3;
+      buildReviewSummary();
+      updateSteps();
+      buildReviewSummary();
+    });
+
+    function buildReviewSummary(){
+      const email = (document.getElementById("email").value || "").trim();
+      const mobile = (document.getElementById("mobile").value || "").trim();
+      const surname = (document.getElementById("surname").value || "").trim();
+      const given = (document.getElementById("givenName").value || "").trim();
+      const middle = (document.getElementById("middleName").value || "").trim();
+      const suffix = (document.getElementById("suffix").value || "").trim();
+
+      const countryName = countryTypeEl.value || "";
+      const pax = toNum(paxCountEl.value, 0);
+      const travelDate = apptDateEl.value || "";
+      const appType = (document.querySelector('input[name="appType"]:checked') || {}).value || "";
+      const entryType = entryTypeEl.value || "";
+
+      const visaTypeApplied = (visaTypeEl.value === "Other")
+        ? `Other: ${(otherVisaEl.value || "").trim()}`
+        : (visaTypeEl.value || "");
+
+      const firstTimeVisa = (document.querySelector('input[name="firstTimeVisa"]:checked') || {}).value || "";
+      const appFormDone = (document.querySelector('input[name="appFormDone"]:checked') || {}).value || "";
+
+      const apptSlotDate = appointmentDateEl.value || "";
+      const apptSlotSession = appointmentSessionEl.value || "";
+
+      const fullName = `${surname}, ${given} ${middle}${suffix ? " " + suffix : ""}`.replace(/\s+/g," ").trim();
+
+      let pricingLine = "-";
+      if (SELECTED_PRICE_ROW){
+        const currency = SELECTED_PRICE_ROW.currency || "PHP";
+        const unitPrice = toNum(SELECTED_PRICE_ROW.price, 0);
+        const mode = (SELECTED_PRICE_ROW.pricing_mode || "PER_PAX").toUpperCase();
+        const total = (mode === "PER_PAX") ? unitPrice * pax : unitPrice;
+
+        pricingLine = `
+          ${SELECTED_PRICE_ROW.service_name || "Service"}:
+          ${fmtMoney(currency, unitPrice)}
+          ${mode === "PER_PAX"
+            ? `× ${pax} = <span class="total-red">${fmtMoney(currency, total)}</span>`
+            : `(fixed: <span class="total-red">${fmtMoney(currency, total)}</span>)`
+          }
+        `;
+      }
+
+      document.getElementById("r_fullname").textContent = fullName || "-";
+      document.getElementById("r_email").textContent = email || "-";
+      document.getElementById("r_mobile").textContent = mobile || "-";
+
+      document.getElementById("r_country").textContent = countryName || "-";
+      document.getElementById("r_pax").textContent = pax ? String(pax) : "-";
+      document.getElementById("r_price").innerHTML = pricingLine || "-";
+      document.getElementById("r_traveldate").textContent = travelDate || "-";
+      document.getElementById("r_slot").textContent = apptSlotDate ? `${apptSlotDate} (${apptSlotSession || "-"})` : "-";
+
+      document.getElementById("r_visa").textContent = visaTypeApplied || "-";
+      document.getElementById("r_entry").textContent = entryType || "-";
+      document.getElementById("r_apptype").textContent = appType || "-";
+      document.getElementById("r_firsttime").textContent = firstTimeVisa || "-";
+      document.getElementById("r_formdone").textContent = appFormDone || "-";
+
+      const adminNote = (SELECTED_PRICE_ROW && SELECTED_PRICE_ROW.notes) ? String(SELECTED_PRICE_ROW.notes).trim() : "";
+      const reviewNoteEl = document.getElementById("reviewNote");
+      if (reviewNoteEl){
+        reviewNoteEl.innerHTML = adminNote
+          ? `<b>Note:</b> ${adminNote}`
+          : `<b>Note:</b> Please arrive <b>15 minutes early</b>. Bring your passport and requirements.`;
+      }
+
+      const reviewSub = document.getElementById("reviewSub");
+      if (reviewSub){
+        reviewSub.textContent = apptSlotDate
+          ? `Ready to submit — ${apptSlotDate} (${apptSlotSession || "-"})`
+          : `Check the details below.`;
+      }
+    }
+
+    /* =========================================================
+      FINAL SUBMIT ✅ FIXED (google.script.run -> apiPost)
+    ========================================================= */
+    document.getElementById("appointmentForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const residentEl = document.querySelector('input[name="resident"]:checked');
+      const ofwEl = document.querySelector('input[name="ofw"]:checked');
+
+      const appTypeChecked = document.querySelector('input[name="appType"]:checked');
+      const appFormDoneChecked = document.querySelector('input[name="appFormDone"]:checked');
+      const firstTimeVisaChecked = document.querySelector('input[name="firstTimeVisa"]:checked');
+
+      const countryName = countryTypeEl.value;
+      const countryId = COUNTRY_NAME_TO_ID[countryName] || "";
+      const pax = toNum(paxCountEl.value, 0);
+
+      const consentAgree = document.getElementById("consentAgree");
+      const consentBox = document.getElementById("consentBox");
+      const consentBody = document.getElementById("consentBody");
+      const consentArrow = document.getElementById("consentArrow");
+      const consentErr = document.getElementById("consentErr");
+
+      if (!consentAgree || !consentAgree.checked){
+        showNotice("Please agree to the Consent and Declaration.", false);
+        if (consentBox) consentBox.classList.add("invalid");
+        if (consentErr) consentErr.style.display = "block";
+
+        if (consentBody && !consentBody.classList.contains("open")){
+          consentBody.classList.add("open");
+          if (consentArrow) consentArrow.textContent = "▾";
+        }
+        return;
+      }
+
+      if (!SELECTED_PRICE_ROW){
+        showNotice("Pricing is not selected/available. Please go back to Step 2.", false);
+        return;
+      }
+
+      const visaTypeApplied = visaTypeEl.value === "Other"
+        ? `Other: ${otherVisaEl.value.trim()}`
+        : visaTypeEl.value;
+
+      const mode = SELECTED_PRICE_ROW.pricing_mode;
+      const currency = SELECTED_PRICE_ROW.currency || "PHP";
+      const unitPrice = toNum(SELECTED_PRICE_ROW.price, 0);
+      const totalPrice = mode === "PER_PAX" ? unitPrice * pax : unitPrice;
+
+      const data = {
+        email: document.getElementById("email").value.trim(),
+        mobile: document.getElementById("mobile").value.trim(),
+        surname: document.getElementById("surname").value.trim(),
+        givenName: document.getElementById("givenName").value.trim(),
+        middleName: document.getElementById("middleName").value.trim(),
+        suffix: document.getElementById("suffix").value,
+        municipality: document.getElementById("municipality").value,
+        resident: residentEl ? residentEl.value : "",
+        ofw: ofwEl ? ofwEl.value : "",
+
+        country_name: countryName,
+        country_id: countryId,
+        paxCount: pax,
+
+        price_id: SELECTED_PRICE_ROW.price_id || "",
+        service_name: SELECTED_PRICE_ROW.service_name || "",
+        pricing_mode: mode,
+        currency: currency,
+        unit_price: unitPrice,
+        total_price: totalPrice,
+        notes: SELECTED_PRICE_ROW.notes || "",
+
+        apptDate: apptDateEl.value,
+        applicationType: appTypeChecked ? appTypeChecked.value : "",
+        visaTypeAppliedFor: visaTypeApplied,
+        entryType: entryTypeEl.value,
+        firstTimeVisa: firstTimeVisaChecked ? firstTimeVisaChecked.value : "",
+        appFormDone: appFormDoneChecked ? appFormDoneChecked.value : "",
+
+        appointmentDate: appointmentDateEl.value || "",
+        appointmentSession: appointmentSessionEl.value || "",
+        source: [...document.querySelectorAll('input[name="source"]:checked')].map(x => x.value),
+        source_other: (sourceOtherCheckEl && sourceOtherCheckEl.checked) ? (sourceOtherTextEl.value.trim()) : ""
+      };
+
+      const submitBtn = document.getElementById("submitBtn");
+      submitBtn.disabled = true;
+      const oldText = submitBtn.textContent;
+      submitBtn.textContent = "Saving...";
+
+      try{
+        const res = await apiPost("saveAppointment", data);
+        showNotice((res && res.message) ? res.message : "Saved!", true);
+
+        submitBtn.textContent = "Saved ✓";
+        setTimeout(() => {
+          submitBtn.textContent = oldText || "Confirm Appointment";
+          submitBtn.disabled = false;
+        }, 900);
+      } catch(err){
+        console.error(err);
+        showNotice(err && err.message ? err.message : "Failed to save. Try again.", false);
+        submitBtn.disabled = false;
+        submitBtn.textContent = oldText || "Confirm Appointment";
+      }
+    });
+
+    /* =========================================================
+      STEP 4: Confirm + Consent enable submit (your UI)
+    ========================================================= */
+    function updateSubmitEnabled(){
+      const confirmCheck = document.getElementById("confirmCheck");
+      const consentAgree = document.getElementById("consentAgree");
+      const submitBtn = document.getElementById("submitBtn");
+
+      const ok = !!(confirmCheck && confirmCheck.checked) && !!(consentAgree && consentAgree.checked);
+      if (submitBtn) submitBtn.disabled = !ok;
+    }
+
+    (function setupConsentUI(){
+      const head = document.getElementById("consentHead");
+      const body = document.getElementById("consentBody");
+      const arrow = document.getElementById("consentArrow");
+      const consentBox = document.getElementById("consentBox");
+      const consentAgree = document.getElementById("consentAgree");
+      const consentErr = document.getElementById("consentErr");
+
+      if (head && body && arrow){
+        head.addEventListener("click", () => {
+          const isOpen = body.classList.toggle("open");
+          arrow.textContent = isOpen ? "▾" : "▸";
+        });
+      }
+
+      if (consentAgree){
+        consentAgree.addEventListener("change", () => {
+          if (consentBox) consentBox.classList.remove("invalid");
+          if (consentErr) consentErr.style.display = "none";
+          updateSubmitEnabled();
+        });
+      }
+
+      const confirmCheck = document.getElementById("confirmCheck");
+      if (confirmCheck){
+        confirmCheck.addEventListener("change", () => {
+          updateSubmitEnabled();
+        });
+      }
+
+      updateSubmitEnabled();
+    })();
+
+    /* =========================================================
+      INIT
+    ========================================================= */
+    updateSteps();
+    loadCountriesIntoUser();
+    updatePriceBoxFromSheet();
+    calendarEnsureAvailabilityThenRender();
+    </script>
+
+</body>
+</html>
